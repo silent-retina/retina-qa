@@ -1,6 +1,7 @@
 import streamlit as st
 import os
 import google.generativeai as genai
+from datetime import datetime
 
 genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
 
