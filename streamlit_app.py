@@ -1,53 +1,115 @@
 import streamlit as st
-from openai import OpenAI
+import os
+import google.generativeai as genai
 
-# Show title and description.
-st.title("📄 Document question answering")
-st.write(
-    "Upload a document below and ask a question about it – GPT will answer! "
-    "To use this app, you need to provide an OpenAI API key, which you can get [here](https://platform.openai.com/account/api-keys). "
-)
+genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
 
-# Ask user for their OpenAI API key via `st.text_input`.
-# Alternatively, you can store the API key in `./.streamlit/secrets.toml` and access it
-# via `st.secrets`, see https://docs.streamlit.io/develop/concepts/connections/secrets-management
-openai_api_key = st.text_input("OpenAI API Key", type="password")
-if not openai_api_key:
-    st.info("Please add your OpenAI API key to continue.", icon="🗝️")
-else:
+# Set up the model
+model = genai.GenerativeModel('gemini-2.0-flash-exp')
 
-    # Create an OpenAI client.
-    client = OpenAI(api_key=openai_api_key)
+def generate_content(patient_data, clinical_data):
+    prompt = f"""
+    Create a colorful, engaging patient education material with emojis and formatting. Use the following patient information:
+    
+    Patient Details:
+    - Age: {patient_data['age']}
+    - Preferred Language: {patient_data['language']}
+    - Education Level: {patient_data['education']}
+    
+    Clinical Information:
+    - Diagnosis: {clinical_data['diagnosis']}
+    - Visual Acuity RE: {clinical_data['va_re']}
+    - Visual Acuity LE: {clinical_data['va_le']}
+    - OCT Findings: {clinical_data['oct_findings']}
+    
+    Include these sections: {', '.join(clinical_data['sections'])}
+    
+    Make the content patient-friendly, using simple language. Add emojis and color indicators using markdown.
+    Use different colors for different sections (using markdown).
+    Include a summary at the end.
+    
+    If the language selected is not English, provide content in both English and the selected language.
+    """
+    
+    try:
+        response = model.generate_content(prompt)
+        return response.text
+    except Exception as e:
+        return f"Error generating content: {str(e)}"
 
-    # Let the user upload a file via `st.file_uploader`.
-    uploaded_file = st.file_uploader(
-        "Upload a document (.txt or .md)", type=("txt", "md")
+def main():
+    st.set_page_config(page_title="Retina Patient Education Generator", page_icon="👁️")
+    
+    st.title("👁️ Retina Patient Education Generator")
+    st.markdown("---")
+    
+    # Create two columns
+    col1, col2 = st.columns(2)
+    
+    # Patient Demographics (Left Column)
+    with col1:
+        st.subheader("Patient Demographics")
+        patient_data = {
+            'age': st.number_input("Patient Age", 1, 100, 50),
+            'language': st.selectbox(
+                "Preferred Language",
+                ["English", "Hindi", "Punjabi", "Odiya"]
+            ),
+            'education': st.selectbox(
+                "Education Level",
+                ["Primary", "Secondary", "Tertiary"]
+            )
+        }
+    
+    # Clinical Information (Right Column)
+    with col2:
+        st.subheader("Clinical Information")
+        clinical_data = {
+            'diagnosis': st.selectbox(
+                "Diagnosis",
+                [
+                    "Diabetic Retinopathy",
+                    "Age-related Macular Degeneration",
+                    "Retinal Detachment",
+                    "Central Serous Chorioretinopathy",
+                    "Diabetic Macular Edema"
+                ]
+            ),
+            'va_re': st.text_input("Visual Acuity (Right Eye)", "6/6"),
+            'va_le': st.text_input("Visual Acuity (Left Eye)", "6/6"),
+            'oct_findings': st.text_area("OCT Findings", "")
+        }
+    
+    # Content Sections (Full Width)
+    st.subheader("Content Sections")
+    clinical_data['sections'] = st.multiselect(
+        "Select sections to include:",
+        [
+            "Disease Overview",
+            "Treatment Options",
+            "Lifestyle Modifications",
+            "Follow-up Care",
+            "Emergency Signs",
+            "Dietary Recommendations",
+            "Visual Aids and Rehabilitation"
+        ],
+        default=["Disease Overview", "Treatment Options"]
     )
+    
+    # Generate Button
+    if st.button("Generate Education Material", type="primary"):
+        with st.spinner("Generating education material..."):
+            content = generate_content(patient_data, clinical_data)
+            st.markdown("### Generated Education Material")
+            st.markdown(content)
+            
+            # Add download button for the content
+            st.download_button(
+                label="Download Material",
+                data=content,
+                file_name=f"patient_education_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt",
+                mime="text/plain"
+            )
 
-    # Ask the user for a question via `st.text_area`.
-    question = st.text_area(
-        "Now ask a question about the document!",
-        placeholder="Can you give me a short summary?",
-        disabled=not uploaded_file,
-    )
-
-    if uploaded_file and question:
-
-        # Process the uploaded file and question.
-        document = uploaded_file.read().decode()
-        messages = [
-            {
-                "role": "user",
-                "content": f"Here's a document: {document} \n\n---\n\n {question}",
-            }
-        ]
-
-        # Generate an answer using the OpenAI API.
-        stream = client.chat.completions.create(
-            model="gpt-3.5-turbo",
-            messages=messages,
-            stream=True,
-        )
-
-        # Stream the response to the app using `st.write_stream`.
-        st.write_stream(stream)
+if __name__ == "__main__":
+    main()
