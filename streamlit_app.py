@@ -107,9 +107,6 @@ def main():
             st.download_button(
                 label="Download Material",
                 data=content,
-                file_name=f"patient_education_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt",
+                file_name="patient_education_downloaded.txt",
                 mime="text/plain"
             )
-
-if __name__ == "__main__":
-    main()
