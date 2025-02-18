@@ -1,7 +1,6 @@
 import streamlit as st
 import os
 import google.generativeai as genai
-from datetime import datetime
 
 genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
 
@@ -42,7 +41,7 @@ def main():
     st.set_page_config(page_title="Retina Patient Education Generator", page_icon="👁️")
     
     st.title("👁️ Retina Patient Education Generator")
-    st.markdown("---")
+    st.markdown("--- ©Anand Singh Brar  [**@brar_retina**](https://www.instagram.com/brar_retina)")
     
     # Create two columns
     col1, col2 = st.columns(2)
@@ -54,11 +53,11 @@ def main():
             'age': st.number_input("Patient Age", 1, 100, 50),
             'language': st.selectbox(
                 "Preferred Language",
-                ["English", "Hindi", "Punjabi", "Odiya"]
+                ["English", "Hindi", "Punjabi", "Odiya", "Telugu", "Bengali", "Korean", "Chinese", "Japanese"]
             ),
             'education': st.selectbox(
                 "Education Level",
-                ["Primary", "Secondary", "Tertiary"]
+                ["Primary", "Middle School", "High School", "Graduate"]
             )
         }
     
@@ -108,6 +107,9 @@ def main():
             st.download_button(
                 label="Download Material",
                 data=content,
-                file_name="patient_education_downloaded.txt",
+                file_name="patient_education_.txt",
                 mime="text/plain"
             )
+            
+if __name__ == "__main__":
+    main()
